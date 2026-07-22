@@ -1,27 +1,37 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <application
-        android:label="Shoplive-ng"
-        android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
-        <activity
-            android:name=".MainActivity"
-            android:exported="true"
-            android:launchMode="singleTop"
-            android:theme="@style/LaunchTheme"
-            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
-            android:hardwareAccelerated="true"
-            android:windowSoftInputMode="adjustResize">
-            <meta-data
-              android:name="io.flutter.embedding.android.NormalTheme"
-              android:resource="@style/NormalTheme"
-              />
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN"/>
-                <category android:name="android.intent.category.LAUNCHER"/>
-            </intent-filter>
-        </activity>
-        <meta-data
-            android:name="flutterEmbedding"
-            android:value="2" />
-    </application>
-</manifest>
+workflows:
+  android-workflow:
+    name: Android Workflow Stable v2
+    max_build_instances: 1
+    environment:
+      flutter: stable
+      java: 11
+      cocoapods: default
+    scripts:
+      - name: Setup Flutter
+        script: flutter --version
+      
+      - name: Create Android v2 folder if missing
+        script: |
+          if [ ! -d "android" ]; then
+            flutter create .
+          else
+            echo "Android folder already exists, skipping create"
+          fi
+      
+      - name: Set Stable Android Versions
+        script: |
+          sed -i 's/compileSdkVersion [0-9]*/compileSdkVersion 33/g' android/app/build.gradle
+          sed -i 's/targetSdkVersion [0-9]*/targetSdkVersion 33/g' android/app/build.gradle
+          sed -i 's/minSdkVersion [0-9]*/minSdkVersion 21/g' android/app/build.gradle
+          sed -i 's/com.android.tools.build:gradle:[0-9.]*/com.android.tools.build:gradle:7.2.2/g' android/build.gradle
+          sed -i 's/org.jetbrains.kotlin:kotlin-gradle-plugin:[0-9.]*/org.jetbrains.kotlin:kotlin-gradle-plugin:1.7.20/g' android/build.gradle
+          sed -i 's/ndkVersion "[0-9.]*"/ndkVersion "23.1.7779620"/g' android/app/build.gradle
+      
+      - name: Get packages
+        script: flutter pub get
+      
+      - name: Build APK Debug
+        script: flutter build apk --debug --verbose
+    
+    artifacts:
+      - build/app/outputs/flutter-apk/*.apk

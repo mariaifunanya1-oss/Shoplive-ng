@@ -1,0 +1,20 @@
+workflows:
+  android-workflow:
+    name: Android Workflow
+    max_build_instances: 1
+    instance_type: mac_mini_m1
+    environment:
+      flutter: stable
+    scripts:
+      - name: Recreate Android folder
+        script: |
+          flutter create .
+      - name: Build Android
+        script: |
+          flutter build apk --debug
+    artifacts:
+      - build/app/outputs/flutter-apk/*.apk
+    publishing:
+      email:
+        recipients:
+          - mariaifunanya1@gmail.com

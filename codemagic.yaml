@@ -1,20 +1,26 @@
 workflows:
   android-workflow:
-    name: Android Workflow
+    name: Android Workflow Stable
     max_build_instances: 1
-    instance_type: mac_mini_m1
     environment:
       flutter: stable
+      java: 11
     scripts:
-      - name: Recreate Android folder
+      - name: Create Android v2 folder
+        script: flutter create .
+      
+      - name: Set Stable Android Versions
         script: |
-          flutter create .
-      - name: Build Android
-        script: |
-          flutter build apk --debug
+          sed -i 's/compileSdkVersion [0-9]*/compileSdkVersion 33/g' android/app/build.gradle
+          sed -i 's/targetSdkVersion [0-9]*/targetSdkVersion 33/g' android/app/build.gradle
+          sed -i 's/com.android.tools.build:gradle:[0-9.]*/com.android.tools.build:gradle:7.2.2/g' android/build.gradle
+          sed -i 's/org.jetbrains.kotlin:kotlin-gradle-plugin:[0-9.]*/org.jetbrains.kotlin:kotlin-gradle-plugin:1.7.20/g' android/build.gradle
+      
+      - name: Get packages
+        script: flutter pub get
+      
+      - name: Build APK Debug
+        script: flutter build apk --debug
+    
     artifacts:
       - build/app/outputs/flutter-apk/*.apk
-    publishing:
-      email:
-        recipients:
-          - mariaifunanya1@gmail.com

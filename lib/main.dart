@@ -1,0 +1,290 @@
+import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+void main() {
+  runApp(const ShopLiveApp());
+}
+
+class ShopLiveApp extends StatelessWidget {
+  const ShopLiveApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'ShopLive NG',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        primaryColor: Colors.red,
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.red),
+        useMaterial3: true,
+      ),
+      home: const ManageScreen(),
+    );
+  }
+}
+
+// ========== VENDOR MANAGE SCREEN ==========
+class ManageScreen extends StatefulWidget {
+  const ManageScreen({super.key});
+
+  @override
+  State<ManageScreen> createState() => _ManageScreenState();
+}
+
+class _ManageScreenState extends State<ManageScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _titleController = TextEditingController();
+  final _priceController = TextEditingController();
+  final _whatsappController = TextEditingController();
+  final _searchController = TextEditingController();
+  
+  List<Map<String, String>> _products = [];
+  List<Map<String, String>> _filteredProducts = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProducts();
+    _searchController.addListener(_filterProducts);
+  }
+
+  Future<void> _loadProducts() async {
+    final prefs = await SharedPreferences.getInstance();
+    final productList = prefs.getStringList('products')?? [];
+    setState(() {
+      _products = productList.map((e) {
+        final parts = e.split('|');
+        return {'title': parts[0], 'price': parts[1], 'whatsapp': parts[2]};
+      }).toList();
+      _filteredProducts = _products;
+    });
+  }
+
+  Future<void> _saveProducts() async {
+    final prefs = await SharedPreferences.getInstance();
+    final productList = _products.map((e) => '${e['title']}|${e['price']}|${e['whatsapp']}').toList();
+    await prefs.setStringList('products', productList);
+  }
+
+  void _filterProducts() {
+    final query = _searchController.text.toLowerCase();
+    setState(() {
+      _filteredProducts = _products.where((product) {
+        return product['title']!.toLowerCase().contains(query);
+      }).toList();
+    });
+  }
+
+  void _addProduct() {
+    if (_formKey.currentState!.validate()) {
+      setState(() {
+        _products.add({
+          'title': _titleController.text,
+          'price': _priceController.text,
+          'whatsapp': _whatsappController.text
+        });
+        _filteredProducts = _products;
+      });
+      _saveProducts();
+      _titleController.clear();
+      _priceController.clear();
+      _whatsappController.clear();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Product Added!')),
+      );
+    }
+  }
+
+  void _deleteProduct(int index) {
+    setState(() {
+      _products.removeAt(index);
+      _filteredProducts = _products;
+    });
+    _saveProducts();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('ShopLive NG - Manage'),
+        backgroundColor: Colors.red,
+        foregroundColor: Colors.white,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.live_tv),
+            onPressed: () {
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const LiveScreen()));
+            },
+          )
+        ],
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            Form(
+              key: _formKey,
+              child: Column(
+                children: [
+                  TextFormField(
+                    controller: _titleController,
+                    decoration: const InputDecoration(labelText: 'Product Title', border: OutlineInputBorder()),
+                    validator: (v) => v!.isEmpty? 'Enter title' : null,
+                  ),
+                  const SizedBox(height: 10),
+                  TextFormField(
+                    controller: _priceController,
+                    decoration: const InputDecoration(labelText: 'Price e.g. 15000', border: OutlineInputBorder()),
+                    keyboardType: TextInputType.number,
+                    validator: (v) => v!.isEmpty? 'Enter price' : null,
+                  ),
+                  const SizedBox(height: 10),
+                  TextFormField(
+                    controller: _whatsappController,
+                    decoration: const InputDecoration(labelText: 'WhatsApp Number', border: OutlineInputBorder()),
+                    keyboardType: TextInputType.phone,
+                    validator: (v) => v!.isEmpty? 'Enter WhatsApp' : null,
+                  ),
+                  const SizedBox(height: 10),
+                  ElevatedButton(
+                    onPressed: _addProduct,
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.red, minimumSize: const Size(double.infinity, 50)),
+                    child: const Text('ADD PRODUCT', style: TextStyle(color: Colors.white)),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+            TextField(
+              controller: _searchController,
+              decoration: const InputDecoration(
+                labelText: 'Search products...',
+                prefixIcon: Icon(Icons.search),
+                border: OutlineInputBorder()
+              ),
+            ),
+            const SizedBox(height: 10),
+            Expanded(
+              child: ListView.builder(
+                itemCount: _filteredProducts.length,
+                itemBuilder: (context, index) {
+                  final product = _filteredProducts[index];
+                  return Card(
+                    child: ListTile(
+                      title: Text(product['title']!),
+                      subtitle: Text('₦${product['price']}'),
+                      trailing: IconButton(
+                        icon: const Icon(Icons.delete, color: Colors.red),
+                        onPressed: () => _deleteProduct(index),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            )
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ========== CUSTOMER LIVE SCREEN ==========
+class LiveScreen extends StatefulWidget {
+  const LiveScreen({super.key});
+
+  @override
+  State<LiveScreen> createState() => _LiveScreenState();
+}
+
+class _LiveScreenState extends State<LiveScreen> {
+  List<Map<String, String>> _products = [];
+  final _searchController = TextEditingController();
+  List<Map<String, String>> _filteredProducts = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProducts();
+    _searchController.addListener(_filterProducts);
+  }
+
+  Future<void> _loadProducts() async {
+    final prefs = await SharedPreferences.getInstance();
+    final productList = prefs.getStringList('products')?? [];
+    setState(() {
+      _products = productList.map((e) {
+        final parts = e.split('|');
+        return {'title': parts[0], 'price': parts[1], 'whatsapp': parts[2]};
+      }).toList();
+      _filteredProducts = _products;
+    });
+  }
+
+  void _filterProducts() {
+    final query = _searchController.text.toLowerCase();
+    setState(() {
+      _filteredProducts = _products.where((product) {
+        return product['title']!.toLowerCase().contains(query);
+      }).toList();
+    });
+  }
+
+  Future<void> _chatOnWhatsApp(String number, String product) async {
+    final url = Uri.parse('https://wa.me/$number?text=Hi, I am interested in $product');
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('🔴 LIVE NOW'),
+        backgroundColor: Colors.red,
+        foregroundColor: Colors.white,
+      ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: TextField(
+              controller: _searchController,
+              decoration: const InputDecoration(
+                hintText: 'Search live products...',
+                prefixIcon: Icon(Icons.search),
+                border: OutlineInputBorder()
+              ),
+            ),
+          ),
+          Expanded(
+            child: _filteredProducts.isEmpty
+               ? const Center(child: Text('No products yet. Add from Manage screen'))
+                : ListView.builder(
+                    itemCount: _filteredProducts.length,
+                    itemBuilder: (context, index) {
+                      final product = _filteredProducts[index];
+                      return Card(
+                        margin: const EdgeInsets.all(8),
+                        child: ListTile(
+                          leading: const Icon(Icons.shopping_bag, color: Colors.red, size: 40),
+                          title: Text(product['title']!, style: const TextStyle(fontWeight: FontWeight.bold)),
+                          subtitle: Text('₦${product['price']}'),
+                          trailing: ElevatedButton(
+                            onPressed: () => _chatOnWhatsApp(product['whatsapp']!, product['title']!),
+                            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                            child: const Text('Chat', style: TextStyle(color: Colors.white)),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+}

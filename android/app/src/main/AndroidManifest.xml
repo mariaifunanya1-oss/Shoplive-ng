@@ -35,3 +35,13 @@ workflows:
     
     artifacts:
       - build/app/outputs/flutter-apk/*.apk
+// Source - https://stackoverflow.com/a/73444152
+// Posted by b a r b a r a
+// Retrieved 2026-07-23, License - CC BY-SA 4.0
+
+<application
+    android:icon="@mipmap/ic_launcher"
+    android:name="${applicationName}"
+    android:label="PassesBox"
+    ...
+

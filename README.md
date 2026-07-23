@@ -1,2 +1,2 @@
 # Shoplive-ng
-Live selling app for vendors 
+Live selling app for vendors

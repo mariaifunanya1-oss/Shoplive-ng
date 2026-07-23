@@ -1,3 +1,1 @@
-class MainActivity: FlutterActivity() { 
-    // nothing else needed for v2
-}
+
